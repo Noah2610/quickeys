@@ -17,6 +17,8 @@ keybindings:
   ## BASE
   q:  'true'
 
+  lmao: "@lmao echo bad"
+
   ## OPEN applications
   ot: '@terminal'
   of: '@browser --new-window'
