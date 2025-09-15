@@ -1,5 +1,4 @@
-use crate::util::merge::*;
-use serde::de::Error;
+use crate::util::{expand_path, Merge};
 use serde::{Deserialize, Deserializer};
 use std::path::PathBuf;
 
@@ -11,7 +10,7 @@ pub use clap::Parser;
 pub struct Args {
     /// Config file location.
     /// Defaults to $XDG_CONFIG_HOME/quickeys/config.yml or platform equivalent.
-    #[arg(short, long, value_name = "FILE", value_parser = expand_path)]
+    #[arg(short, long, value_name = "FILE", value_parser = expand_path_arg)]
     #[serde(skip)]
     pub config: Option<PathBuf>,
 
@@ -32,13 +31,13 @@ pub struct Args {
 
     /// Optional log file for command's stdout.
     /// Inherits parent process' stdout by default.
-    #[arg(long, value_parser = expand_path)]
+    #[arg(long, value_parser = expand_path_arg)]
     #[serde(default, deserialize_with = "deserialize_expand_path")]
     pub stdout: Option<PathBuf>,
 
     /// Optional log file for command's stderr.
     /// Inherits parent process' stderr by default.
-    #[arg(long, value_parser = expand_path)]
+    #[arg(long, value_parser = expand_path_arg)]
     #[serde(default, deserialize_with = "deserialize_expand_path")]
     pub stderr: Option<PathBuf>,
 
@@ -62,28 +61,16 @@ impl Merge for Args {
     }
 }
 
+fn expand_path_arg(
+    s: &str,
+) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    Ok(expand_path(s))
+}
+
 fn deserialize_expand_path<'de, D>(d: D) -> Result<Option<PathBuf>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(d)?;
-    Ok(Some(
-        expand_path(s.as_str())
-            .map_err(|e| D::Error::custom(format!("{}", e)))?,
-    ))
-}
-
-fn expand_path(
-    s: &str,
-) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    // Expand '~' to home path
-    if s.starts_with('~') {
-        if let Some(home) =
-            dirs::home_dir().and_then(|p| p.to_str().map(ToString::to_string))
-        {
-            return Ok(PathBuf::from(s.replacen('~', home.as_str(), 1)));
-        }
-    };
-
-    Ok(PathBuf::from(s))
+    Ok(Some(expand_path(s.as_str())))
 }

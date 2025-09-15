@@ -129,7 +129,7 @@ impl App {
             command.stderr(std::process::Stdio::inherit());
         }
 
-        if self.config.args.verbose > 1 {
+        if self.config.args.verbose > 0 {
             eprintln!(r#"running: {}"#, command_s);
         }
 

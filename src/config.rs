@@ -1,5 +1,6 @@
 use crate::args::Args;
-use serde::Deserialize;
+use crate::util::expand_path_str;
+use serde::{de::Error, Deserialize, Deserializer};
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
@@ -9,8 +10,24 @@ use std::path::Path;
 pub struct Config {
     #[serde(rename = "config")]
     pub args: Args,
+    #[serde(deserialize_with = "deserialize_expand_path_map")]
     pub constants: HashMap<String, String>,
     pub keybindings: HashMap<String, String>,
+}
+
+fn deserialize_expand_path_map<'de, D>(
+    d: D,
+) -> Result<HashMap<String, String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let mut map = HashMap::<String, String>::deserialize(d)?;
+
+    for value in map.values_mut() {
+        *value = expand_path_str(value.as_str());
+    }
+
+    Ok(map)
 }
 
 impl Config {

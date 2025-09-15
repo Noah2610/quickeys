@@ -1,5 +1,7 @@
+pub mod expand_path;
 pub mod merge;
 
+pub use expand_path::*;
 pub use merge::*;
 
 use regex::{Captures, Regex};
