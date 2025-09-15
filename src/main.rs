@@ -2,6 +2,7 @@ mod app;
 mod args;
 mod config;
 mod error;
+mod prompt;
 mod util;
 
 use crate::util::Merge;

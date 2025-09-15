@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::prompt::{Prompt, PromptResult};
 use crate::util;
 use regex::Regex;
 use std::process::Command;
@@ -25,12 +26,48 @@ impl App {
     }
 
     fn run_repl(&self) -> Result {
-        unimplemented!()
+        use crossterm::terminal;
+
+        terminal::enable_raw_mode()?;
+        let result = self.repl_loop();
+        terminal::disable_raw_mode()?;
+
+        match result {
+            Ok(Some(key)) => self.run_key(key.as_str()),
+            Ok(None) => Ok(()),
+            Err(e) => Err(e),
+        }
+    }
+
+    fn repl_loop(&self) -> Result<Option<String>> {
+        use crossterm::event::{self, Event};
+
+        let poll_timeout = std::time::Duration::from_millis(500);
+
+        let mut prompt = Prompt::new("> ");
+        prompt.print_prompt()?;
+
+        loop {
+            if event::poll(poll_timeout)? {
+                if let Event::Key(event) = event::read()? {
+                    match prompt.handle_event(event)? {
+                        PromptResult::Value(input) if self.has_key(input) => {
+                            let key = input.to_string();
+                            prompt.next_line()?;
+                            break Ok(Some(key));
+                        }
+                        PromptResult::Exit => {
+                            break Ok(None);
+                        }
+                        PromptResult::Noop | PromptResult::Value(_) => {}
+                    }
+                }
+            }
+        }
     }
 
     fn run_key(&self, key: &str) -> Result {
         let command = self.resolve(key)?;
-
         self.exec(&command)
     }
 
@@ -97,7 +134,7 @@ impl App {
             .get(key)
             .ok_or_else(|| Error::KeyNotFound(key.to_string()))?;
 
-        let rep = |caps: &regex::Captures| -> Result<String> {
+        let replacer = |caps: &regex::Captures| -> Result<String> {
             match caps.name("ident").map(|m| m.as_str()) {
                 Some(constant) => self
                     .config
@@ -115,7 +152,11 @@ impl App {
             }
         };
 
-        util::replace_all(&re, command, rep)
+        util::replace_all(&re, command, replacer)
+    }
+
+    fn has_key(&self, key: &str) -> bool {
+        self.config.keybindings.contains_key(key)
     }
 }
 
