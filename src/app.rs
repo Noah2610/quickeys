@@ -14,8 +14,10 @@ pub struct App {
 
 impl App {
     pub fn run(&self) -> Result {
-        if self.config.args.verbose {
-            println!("{:#?}", self.config.args);
+        match self.config.args.verbose {
+            0 => (),
+            1 => eprintln!("{:#?}", self.config.args),
+            2.. => eprintln!("{:#?}", self.config),
         }
 
         if let Some(key) = self.config.args.key.as_deref() {
@@ -67,6 +69,10 @@ impl App {
     }
 
     fn run_key(&self, key: &str) -> Result {
+        if self.config.args.verbose > 1 {
+            eprintln!(r#"key: "{}""#, key);
+        }
+
         let command = self.resolve(key)?;
         self.exec(&command)
     }
@@ -74,7 +80,9 @@ impl App {
     fn exec(&self, command_s: &str) -> Result {
         use std::fs::{create_dir_all, File};
 
-        println!("Running shell command:\n{}", command_s);
+        if self.config.args.verbose > 0 {
+            eprintln!(r#"running: {}"#, command_s);
+        }
 
         let mut command = self.create_command(command_s);
 
@@ -105,11 +113,22 @@ impl App {
 
         let mut child = command.spawn()?;
 
-        if !self.config.args.background {
-            child.wait()?;
+        if self.config.args.background {
+            Ok(())
+        } else {
+            let status = child.wait()?;
+            if status.success() {
+                Ok(())
+            } else {
+                Err(Error::CommandError {
+                    command: command_s.to_string(),
+                    code: status.code(),
+                })
+            }
+            // .code()
+            // .map(|c| u8::try_from(c).unwrap_or(1))
+            // .map(ExitCode::from)
         }
-
-        Ok(())
     }
 
     fn create_command(&self, command_s: &str) -> Command {

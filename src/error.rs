@@ -14,6 +14,10 @@ pub enum Error {
         constant: String,
         command: String,
     },
+    CommandError {
+        command: String,
+        code: Option<i32>,
+    },
     Unreachable(String),
 }
 
@@ -42,6 +46,14 @@ impl std::fmt::Display for Error {
                 constant,
                 command,
             } => write!(f, "[ConstantNotFound] Referenced undefined constant '{}' in command:\n{}", constant, command),
+            CommandError {
+                command,
+                code: None,
+            } => write!(f, "[CommandError] command: {}\nexited with unknown exit code", command),
+            CommandError {
+                command,
+                code: Some(code),
+            } => write!(f, "[CommandError] command: {}\nexit code: {}", command, code),
             Unreachable(msg) => write!(f, "[Unreachable] Ohoh something's wrong ¯\\_(ツ)_/¯\n{}", msg),
         }
     }

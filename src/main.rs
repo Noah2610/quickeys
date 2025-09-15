@@ -9,13 +9,14 @@ use crate::util::Merge;
 use app::App;
 use args::{Args, Parser};
 use config::Config;
+use std::process::ExitCode;
 
-fn main() {
+fn main() -> ExitCode {
     match run() {
-        Ok(()) => (),
+        Ok(_) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("{}", error);
-            std::process::exit(1);
+            ExitCode::FAILURE
         }
     }
 }

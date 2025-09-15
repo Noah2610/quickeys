@@ -23,6 +23,7 @@ constants:
 keybindings:
   ## BASE
   q:  'true'
+  f:  'false'
 
   ec: "echo hi"
   se: '@{shell} "echo HI"'

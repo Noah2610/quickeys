@@ -7,7 +7,7 @@ pub use clap::Parser;
 
 #[derive(Debug, Default, Parser, Deserialize)]
 #[command(version, about, long_about = None)]
-#[serde(deny_unknown_fields)]
+// #[serde(deny_unknown_fields)]
 pub struct Args {
     /// Config file location.
     /// Defaults to $XDG_CONFIG_HOME/quickeys/config.yml or platform equivalent.
@@ -15,11 +15,10 @@ pub struct Args {
     #[serde(skip)]
     pub config: Option<PathBuf>,
 
-    /// Enable verbose output.
-    /// If enabled: output parsed cli args and command to run
-    #[arg(short, long)]
+    /// Increase debug output verbosity level.
+    #[arg(short, long, action = clap::ArgAction::Count)]
     #[serde(default)]
-    pub verbose: bool,
+    pub verbose: u8,
 
     /// Shell to use when running commands. Defaults to user's default shell.
     #[arg(short, long, value_name = "SHELL")]

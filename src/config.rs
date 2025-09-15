@@ -5,7 +5,7 @@ use std::fs::File;
 use std::path::Path;
 
 #[derive(Default, Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
+// #[serde(deny_unknown_fields)]
 pub struct Config {
     #[serde(rename = "config")]
     pub args: Args,
