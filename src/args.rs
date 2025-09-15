@@ -1,3 +1,4 @@
+use crate::util::merge::*;
 use serde::de::Error;
 use serde::{Deserialize, Deserializer};
 use std::path::PathBuf;
@@ -14,30 +15,52 @@ pub struct Args {
     #[serde(skip)]
     pub config: Option<PathBuf>,
 
+    /// Enable verbose output.
+    /// If enabled: output parsed cli args and command to run
+    #[arg(short, long)]
+    #[serde(default)]
+    pub verbose: bool,
+
     /// Shell to use when running commands. Defaults to user's default shell.
     #[arg(short, long, value_name = "SHELL")]
+    #[serde(default)]
     pub shell: Option<String>,
 
     /// Run commands in a new background process TODO
     #[arg(short, long = "bg")]
+    #[serde(default)]
     pub background: bool,
 
     /// Optional log file for command's stdout.
     /// Inherits parent process' stdout by default.
     #[arg(long, value_parser = expand_path)]
-    #[serde(deserialize_with = "deserialize_expand_path")]
+    #[serde(default, deserialize_with = "deserialize_expand_path")]
     pub stdout: Option<PathBuf>,
 
     /// Optional log file for command's stderr.
     /// Inherits parent process' stderr by default.
     #[arg(long, value_parser = expand_path)]
-    #[serde(deserialize_with = "deserialize_expand_path")]
+    #[serde(default, deserialize_with = "deserialize_expand_path")]
     pub stderr: Option<PathBuf>,
 
     /// Run script for given key from config file
     #[command()]
     #[serde(skip)]
     pub key: Option<String>,
+}
+
+impl Merge for Args {
+    fn merge(&mut self, other: Self) {
+        *self = Self {
+            config: self.config.take().merged(other.config),
+            verbose: self.verbose.merged(other.verbose),
+            shell: self.shell.take().merged(other.shell),
+            background: self.background.merged(other.background),
+            stdout: self.stdout.take().merged(other.stdout),
+            stderr: self.stderr.take().merged(other.stderr),
+            key: self.key.take().merged(other.key),
+        }
+    }
 }
 
 fn deserialize_expand_path<'de, D>(d: D) -> Result<Option<PathBuf>, D::Error>

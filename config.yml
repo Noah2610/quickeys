@@ -3,16 +3,16 @@ config:
   # Shell used to execute commands. Omit to use user default (`$SHELL`).
   shell:      'sh'
   # Execute command in background.
-  background: true
+  background: false
   # Specify stdout for commands. Inherits parent stdout by default.
-  stdout:     '~/.cache/quickeys/stdout'
+  #stdout:     '~/.cache/quickeys/stdout'
   # Specify stderr for commands. Inherits parent stderr by default.
-  stderr:     '~/.cache/quickeys/stderr'
+  #stderr:     '~/.cache/quickeys/stderr'
 
 ### CONSTANTS
 constants:
   terminal: 'alacritty'
-  shell:    'sh -c'
+  shell:    'bash -c'
   browser:  'firefox'
   editor:   'nvim'
 
@@ -24,7 +24,8 @@ keybindings:
   ## BASE
   q:  'true'
 
-  se: "@{shell} echo hi shell"
+  ec: "echo hi"
+  se: '@{shell} "echo HI"'
 
   sl: "sleep 30s"
   ye: "yes"

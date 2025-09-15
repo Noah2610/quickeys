@@ -1,4 +1,5 @@
 use crate::config::Config;
+use crate::util;
 use regex::Regex;
 use std::process::Command;
 
@@ -12,10 +13,22 @@ pub struct App {
 
 impl App {
     pub fn run(&self) -> Result {
-        Ok(())
+        if self.config.args.verbose {
+            println!("{:#?}", self.config.args);
+        }
+
+        if let Some(key) = self.config.args.key.as_deref() {
+            self.run_key(key)
+        } else {
+            self.run_repl()
+        }
     }
 
-    pub fn run_key(&self, key: &str) -> Result {
+    fn run_repl(&self) -> Result {
+        unimplemented!()
+    }
+
+    fn run_key(&self, key: &str) -> Result {
         let command = self.resolve(key)?;
 
         self.exec(&command)
@@ -31,7 +44,7 @@ impl App {
         let mut file_options = File::options();
         file_options.write(true).create(true).truncate(true);
 
-        if let Some(path) = self.config.config.stdout.as_ref() {
+        if let Some(path) = self.config.args.stdout.as_ref() {
             if let Some(parent) = path.parent() {
                 create_dir_all(parent).map_err(|e| (e, parent))?;
             }
@@ -42,7 +55,7 @@ impl App {
             command.stdout(std::process::Stdio::inherit());
         }
 
-        if let Some(path) = self.config.config.stderr.as_ref() {
+        if let Some(path) = self.config.args.stderr.as_ref() {
             if let Some(parent) = path.parent() {
                 create_dir_all(parent).map_err(|err| (err, parent))?;
             }
@@ -55,7 +68,7 @@ impl App {
 
         let mut child = command.spawn()?;
 
-        if !self.config.config.background {
+        if !self.config.args.background {
             child.wait()?;
         }
 
@@ -70,37 +83,7 @@ impl App {
     }
 
     fn get_shell(&self) -> (String, &str) {
-        use util::matches_filenames;
-
-        match self
-            .config
-            .config
-            .shell
-            .as_ref()
-            .map(ToString::to_string)
-            .or_else(|| std::env::var("SHELL").ok())
-        {
-            Some(sh)
-                if matches_filenames(sh.as_ref(), ["sh", "bash", "zsh"]) =>
-            {
-                (sh, "-c")
-            }
-            Some(cmd)
-                if matches_filenames(cmd.as_ref(), ["cmd", "cmd.exe"]) =>
-            {
-                (cmd, "/C")
-            }
-
-            // TODO
-            Some(other) => (other, ""),
-
-            None => {
-                #[cfg(not(target_os = "windows"))]
-                return ("sh".into(), "-c");
-                #[cfg(target_os = "windows")]
-                return ("cmd".into(), "/C");
-            }
-        }
+        util::get_shell(self.config.args.shell.clone())
     }
 
     fn resolve(&self, key: &str) -> Result<String> {
@@ -139,40 +122,5 @@ impl App {
 impl From<Config> for App {
     fn from(config: Config) -> Self {
         Self { config }
-    }
-}
-
-mod util {
-    use regex::{Captures, Regex};
-    use std::ffi::OsStr;
-    use std::path::Path;
-
-    // https://docs.rs/regex/1.11.2/regex/struct.Regex.html#fallibility
-    pub fn replace_all<E>(
-        re: &Regex,
-        haystack: &str,
-        replacement: impl Fn(&Captures) -> Result<String, E>,
-    ) -> Result<String, E> {
-        let mut new = String::with_capacity(haystack.len());
-        let mut last_match = 0;
-        for caps in re.captures_iter(haystack) {
-            let m = caps.get(0).unwrap();
-            new.push_str(&haystack[last_match..m.start()]);
-            new.push_str(&replacement(&caps)?);
-            last_match = m.end();
-        }
-        new.push_str(&haystack[last_match..]);
-        Ok(new)
-    }
-
-    pub fn matches_filenames<'a, I: IntoIterator<Item = &'a str>>(
-        target: &'a str,
-        names_iter: I,
-    ) -> bool {
-        let target = Path::new(target)
-            .file_name()
-            .and_then(OsStr::to_str)
-            .unwrap_or(target);
-        names_iter.into_iter().any(|item| item == target)
     }
 }

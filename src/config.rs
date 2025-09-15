@@ -7,7 +7,8 @@ use std::path::Path;
 #[derive(Default, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
-    pub config: Args,
+    #[serde(rename = "config")]
+    pub args: Args,
     pub constants: HashMap<String, String>,
     pub keybindings: HashMap<String, String>,
 }

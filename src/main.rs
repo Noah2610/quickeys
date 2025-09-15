@@ -2,7 +2,9 @@ mod app;
 mod args;
 mod config;
 mod error;
+mod util;
 
+use crate::util::Merge;
 use app::App;
 use args::{Args, Parser};
 use config::Config;
@@ -20,17 +22,15 @@ fn main() {
 fn run() -> app::Result {
     let args = Args::parse();
 
-    let config = if let Some(path) = args.config.as_deref() {
+    let mut config = if let Some(path) = args.config.as_deref() {
         Config::from(path)
     } else {
         Config::new()
     };
 
+    config.args.merge(args);
+
     let app = App::from(config);
 
-    if let Some(key) = args.key.as_deref() {
-        app.run_key(key)
-    } else {
-        app.run()
-    }
+    app.run()
 }
