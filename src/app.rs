@@ -69,7 +69,7 @@ impl App {
     }
 
     fn run_key(&self, key: &str) -> Result {
-        if self.config.args.verbose > 1 {
+        if self.config.args.verbose > 2 {
             eprintln!(r#"key: "{}""#, key);
         }
 
@@ -80,17 +80,24 @@ impl App {
     fn exec(&self, command_s: &str) -> Result {
         use std::fs::{create_dir_all, File};
 
-        if self.config.args.verbose > 0 {
-            eprintln!(r#"running: {}"#, command_s);
-        }
-
         let mut command = self.create_command(command_s);
 
         let mut file_options = File::options();
         file_options.write(true).create(true).truncate(true);
 
         if let Some(path) = self.config.args.stdout.as_ref() {
+            if self.config.args.verbose > 2 {
+                eprintln!(r#"stdout: {:?}"#, path);
+            }
+
             if let Some(parent) = path.parent() {
+                if self.config.args.verbose > 3 {
+                    eprintln!(
+                        r#"creating parent directories for stdout: {:?}"#,
+                        parent
+                    );
+                }
+
                 create_dir_all(parent).map_err(|e| (e, parent))?;
             }
 
@@ -101,7 +108,18 @@ impl App {
         }
 
         if let Some(path) = self.config.args.stderr.as_ref() {
+            if self.config.args.verbose > 2 {
+                eprintln!(r#"stderr: {:?}"#, path);
+            }
+
             if let Some(parent) = path.parent() {
+                if self.config.args.verbose > 3 {
+                    eprintln!(
+                        r#"creating parent directories for stderr: {:?}"#,
+                        parent
+                    );
+                }
+
                 create_dir_all(parent).map_err(|err| (err, parent))?;
             }
 
@@ -109,6 +127,10 @@ impl App {
             command.stderr(file);
         } else {
             command.stderr(std::process::Stdio::inherit());
+        }
+
+        if self.config.args.verbose > 1 {
+            eprintln!(r#"running: {}"#, command_s);
         }
 
         let mut child = command.spawn()?;
@@ -133,6 +155,11 @@ impl App {
 
     fn create_command(&self, command_s: &str) -> Command {
         let (shell, arg) = self.get_shell();
+
+        if self.config.args.verbose > 2 {
+            eprintln!(r#"shell: "{} {}""#, shell, arg);
+        }
+
         let mut command = Command::new(shell);
         command.arg(arg).arg(command_s);
         command

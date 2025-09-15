@@ -49,11 +49,11 @@ impl std::fmt::Display for Error {
             CommandError {
                 command,
                 code: None,
-            } => write!(f, "[CommandError] command: {}\nexited with unknown exit code", command),
+            } => write!(f, "[CommandError] command failed: {}\nexited with unknown exit code", command),
             CommandError {
                 command,
                 code: Some(code),
-            } => write!(f, "[CommandError] command: {}\nexit code: {}", command, code),
+            } => write!(f, "[CommandError] command failed: {}\nexit code: {}", command, code),
             Unreachable(msg) => write!(f, "[Unreachable] Ohoh something's wrong ¯\\_(ツ)_/¯\n{}", msg),
         }
     }
