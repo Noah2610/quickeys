@@ -1,10 +1,13 @@
+use crate::args::Args;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
 
 #[derive(Default, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
+    pub config: Args,
     pub constants: HashMap<String, String>,
     pub keybindings: HashMap<String, String>,
 }
@@ -26,7 +29,7 @@ impl Config {
         match serde_yaml::from_reader::<File, Self>(file) {
             Ok(config) => Some(config),
             Err(err) => {
-                eprintln!("Failed to deserialize config file:\n{:#?}", err);
+                eprintln!("Failed to deserialize config file:\n{:}", err);
                 None
             }
         }

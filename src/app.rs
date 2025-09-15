@@ -1,5 +1,6 @@
 use crate::config::Config;
 use regex::Regex;
+use std::process::Command;
 
 pub use crate::error::Error;
 
@@ -17,13 +18,95 @@ impl App {
     pub fn run_key(&self, key: &str) -> Result {
         let command = self.resolve(key)?;
 
-        println!("Running shell command:\n{}", &command);
+        self.exec(&command)
+    }
+
+    fn exec(&self, command_s: &str) -> Result {
+        use std::fs::{create_dir_all, File};
+
+        println!("Running shell command:\n{}", command_s);
+
+        let mut command = self.create_command(command_s);
+
+        let mut file_options = File::options();
+        file_options.write(true).create(true).truncate(true);
+
+        if let Some(path) = self.config.config.stdout.as_ref() {
+            if let Some(parent) = path.parent() {
+                create_dir_all(parent).map_err(|e| (e, parent))?;
+            }
+
+            let file = file_options.open(path).map_err(|e| (e, path))?;
+            command.stdout(file);
+        } else {
+            command.stdout(std::process::Stdio::inherit());
+        }
+
+        if let Some(path) = self.config.config.stderr.as_ref() {
+            if let Some(parent) = path.parent() {
+                create_dir_all(parent).map_err(|err| (err, parent))?;
+            }
+
+            let file = file_options.open(path).map_err(|e| (e, path))?;
+            command.stderr(file);
+        } else {
+            command.stderr(std::process::Stdio::inherit());
+        }
+
+        let mut child = command.spawn()?;
+
+        if !self.config.config.background {
+            child.wait()?;
+        }
 
         Ok(())
     }
 
+    fn create_command(&self, command_s: &str) -> Command {
+        let (shell, arg) = self.get_shell();
+        let mut command = Command::new(shell);
+        command.arg(arg).arg(command_s);
+        command
+    }
+
+    fn get_shell(&self) -> (String, &str) {
+        use util::matches_filenames;
+
+        match self
+            .config
+            .config
+            .shell
+            .as_ref()
+            .map(ToString::to_string)
+            .or_else(|| std::env::var("SHELL").ok())
+        {
+            Some(sh)
+                if matches_filenames(sh.as_ref(), ["sh", "bash", "zsh"]) =>
+            {
+                (sh, "-c")
+            }
+            Some(cmd)
+                if matches_filenames(cmd.as_ref(), ["cmd", "cmd.exe"]) =>
+            {
+                (cmd, "/C")
+            }
+
+            // TODO
+            Some(other) => (other, ""),
+
+            None => {
+                #[cfg(not(target_os = "windows"))]
+                return ("sh".into(), "-c");
+                #[cfg(target_os = "windows")]
+                return ("cmd".into(), "/C");
+            }
+        }
+    }
+
     fn resolve(&self, key: &str) -> Result<String> {
-        let re = Regex::new(r"@(\w+)")?;
+        // TODO: Can't have literal '@' in commands without being expanded.
+        //       Should implement @ escaping (ex. '\@' or '@@').
+        let re = Regex::new(r"@(?:\{\s*)?(?<ident>\w+)(?:\s*\})?")?;
 
         let command: &str = self
             .config
@@ -32,7 +115,7 @@ impl App {
             .ok_or_else(|| Error::KeyNotFound(key.to_string()))?;
 
         let rep = |caps: &regex::Captures| -> Result<String> {
-            match caps.get(1).map(|m| m.as_str()) {
+            match caps.name("ident").map(|m| m.as_str()) {
                 Some(constant) => self
                     .config
                     .constants
@@ -61,6 +144,8 @@ impl From<Config> for App {
 
 mod util {
     use regex::{Captures, Regex};
+    use std::ffi::OsStr;
+    use std::path::Path;
 
     // https://docs.rs/regex/1.11.2/regex/struct.Regex.html#fallibility
     pub fn replace_all<E>(
@@ -78,5 +163,16 @@ mod util {
         }
         new.push_str(&haystack[last_match..]);
         Ok(new)
+    }
+
+    pub fn matches_filenames<'a, I: IntoIterator<Item = &'a str>>(
+        target: &'a str,
+        names_iter: I,
+    ) -> bool {
+        let target = Path::new(target)
+            .file_name()
+            .and_then(OsStr::to_str)
+            .unwrap_or(target);
+        names_iter.into_iter().any(|item| item == target)
     }
 }
