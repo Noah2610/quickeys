@@ -229,6 +229,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fork"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05dc8b302e04a1c27f4fe694439ef0f29779ca4edc205b7b58f00db04e29656d"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -386,6 +395,7 @@ dependencies = [
  "clap",
  "crossterm",
  "dirs",
+ "fork",
  "regex",
  "serde",
  "serde_yaml",

@@ -129,16 +129,33 @@ impl App {
             command.stderr(std::process::Stdio::inherit());
         }
 
-        if self.config.args.verbose > 0 {
-            eprintln!(r#"running: {}"#, command_s);
-        }
-
-        let mut child = command.spawn()?;
-
         if self.config.args.background {
-            Ok(())
+            match fork::daemon(true, true).map_err(Error::ForkError)? {
+                fork::Fork::Parent(child_pid) => {
+                    if self.config.args.verbose > 1 {
+                        eprintln!("forked process, child pid: {}", child_pid);
+                    }
+                    if self.config.args.verbose > 0 {
+                        eprintln!(r#"running in fork: {}"#, command_s);
+                    }
+
+                    fork::waitpid(child_pid).map_err(Error::ForkError)
+                }
+                fork::Fork::Child => {
+                    let status = command.spawn()?.wait()?;
+                    if status.success() {
+                        std::process::exit(0);
+                    } else {
+                        std::process::exit(status.code().unwrap_or(1));
+                    }
+                }
+            }
         } else {
-            let status = child.wait()?;
+            if self.config.args.verbose > 0 {
+                eprintln!(r#"running: {}"#, command_s);
+            }
+
+            let status = command.spawn()?.wait()?;
             if status.success() {
                 Ok(())
             } else {

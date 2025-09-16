@@ -19,6 +19,7 @@ pub enum Error {
         code: Option<i32>,
     },
     Unreachable(String),
+    ForkError(i32),
 }
 
 impl std::error::Error for Error {}
@@ -55,6 +56,7 @@ impl std::fmt::Display for Error {
                 code: Some(code),
             } => write!(f, "[CommandError] command failed: {}\nexit code: {}", command, code),
             Unreachable(msg) => write!(f, "[Unreachable] Ohoh something's wrong ¯\\_(ツ)_/¯\n{}", msg),
+            ForkError(code) => write!(f, "[ForkError] Failed to fork process. Fork returned error code: {}", code),
         }
     }
 }
