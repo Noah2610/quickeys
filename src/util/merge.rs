@@ -2,45 +2,41 @@
 
 /// Merge types together.
 pub trait Merge: Sized {
-    /// Merge other value into self.
-    fn merge(&mut self, other: Self);
-
     /// Consumes both values, merges them together,
     /// and returns a new instance of `Self`.
-    fn merged(mut self, other: Self) -> Self {
-        self.merge(other);
-        self
-    }
+    fn merge(self, other: Self) -> Self;
 }
 
 impl<T> Merge for Option<T>
 where
     T: Merge,
 {
-    fn merge(&mut self, other: Self) {
-        match self.as_mut() {
+    fn merge(self, other: Self) -> Self {
+        match self {
             Some(s) => match other {
-                Some(o) => s.merge(o),
-                None => (),
+                Some(o) => Some(s.merge(o)),
+                None => Some(s),
             },
             None => match other {
-                Some(o) => *self = Some(o),
-                None => (),
+                Some(o) => Some(o),
+                None => other,
             },
         }
     }
 }
 
 impl Merge for bool {
-    fn merge(&mut self, other: Self) {
-        *self = other || *self;
+    fn merge(self, other: Self) -> Self {
+        other || self
     }
 }
 
 impl Merge for u8 {
-    fn merge(&mut self, other: Self) {
+    fn merge(self, other: Self) -> Self {
         if other != 0 {
-            *self = other;
+            other
+        } else {
+            self
         }
     }
 }
@@ -50,8 +46,8 @@ macro_rules! impl_merge_primitive {
     ($($t:ty),*) => {
         $(
             impl Merge for $t {
-                fn merge(&mut self, other: Self) {
-                    *self = other;
+                fn merge(self, other: Self) -> Self {
+                    other
                 }
             }
         )*

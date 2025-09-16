@@ -1,3 +1,4 @@
+use crate::args::Action;
 use crate::config::Config;
 use crate::prompt::{Prompt, PromptResult};
 use crate::util;
@@ -10,20 +11,25 @@ pub type Result<T = ()> = std::result::Result<T, Error>;
 
 pub struct App {
     config: Config,
+    verbose: u8,
 }
 
 impl App {
-    pub fn run(&self) -> Result {
-        match self.config.args.verbose {
+    pub fn with_verbose(self, verbose: u8) -> Self {
+        Self { verbose, ..self }
+    }
+
+    pub fn run(&self, action: Action) -> Result {
+        match self.verbose {
             0 => (),
-            1 => eprintln!("{:#?}", self.config.args),
+            1 => eprintln!("{:#?}", self.config.run_args),
             2.. => eprintln!("{:#?}", self.config),
         }
 
-        if let Some(key) = self.config.args.key.as_deref() {
-            self.run_key(key)
-        } else {
-            self.run_repl()
+        match action {
+            Action::Prompt => self.run_repl(),
+            Action::Run { key } => self.run_key(&key),
+            Action::List => unimplemented!(),
         }
     }
 
@@ -69,7 +75,7 @@ impl App {
     }
 
     fn run_key(&self, key: &str) -> Result {
-        if self.config.args.verbose > 2 {
+        if self.verbose > 2 {
             eprintln!(r#"key: "{}""#, key);
         }
 
@@ -85,13 +91,13 @@ impl App {
         let mut file_options = File::options();
         file_options.write(true).create(true).truncate(true);
 
-        if let Some(path) = self.config.args.stdout.as_ref() {
-            if self.config.args.verbose > 2 {
+        if let Some(path) = self.config.run_args.stdout.as_ref() {
+            if self.verbose > 2 {
                 eprintln!(r#"stdout: {:?}"#, path);
             }
 
             if let Some(parent) = path.parent() {
-                if self.config.args.verbose > 3 {
+                if self.verbose > 3 {
                     eprintln!(
                         r#"creating parent directories for stdout: {:?}"#,
                         parent
@@ -107,13 +113,13 @@ impl App {
             command.stdout(std::process::Stdio::inherit());
         }
 
-        if let Some(path) = self.config.args.stderr.as_ref() {
-            if self.config.args.verbose > 2 {
+        if let Some(path) = self.config.run_args.stderr.as_ref() {
+            if self.verbose > 2 {
                 eprintln!(r#"stderr: {:?}"#, path);
             }
 
             if let Some(parent) = path.parent() {
-                if self.config.args.verbose > 3 {
+                if self.verbose > 3 {
                     eprintln!(
                         r#"creating parent directories for stderr: {:?}"#,
                         parent
@@ -129,13 +135,13 @@ impl App {
             command.stderr(std::process::Stdio::inherit());
         }
 
-        if self.config.args.background {
+        if self.config.run_args.background {
             match fork::daemon(true, true).map_err(Error::ForkError)? {
                 fork::Fork::Parent(child_pid) => {
-                    if self.config.args.verbose > 1 {
+                    if self.verbose > 1 {
                         eprintln!("forked process, child pid: {}", child_pid);
                     }
-                    if self.config.args.verbose > 0 {
+                    if self.verbose > 0 {
                         eprintln!(r#"running in fork: {}"#, command_s);
                     }
 
@@ -151,7 +157,7 @@ impl App {
                 }
             }
         } else {
-            if self.config.args.verbose > 0 {
+            if self.verbose > 0 {
                 eprintln!(r#"running: {}"#, command_s);
             }
 
@@ -173,7 +179,7 @@ impl App {
     fn create_command(&self, command_s: &str) -> Command {
         let (shell, arg) = self.get_shell();
 
-        if self.config.args.verbose > 2 {
+        if self.verbose > 2 {
             eprintln!(r#"shell: "{} {}""#, shell, arg);
         }
 
@@ -183,7 +189,7 @@ impl App {
     }
 
     fn get_shell(&self) -> (String, &str) {
-        util::get_shell(self.config.args.shell.clone())
+        util::get_shell(self.config.run_args.shell.clone())
     }
 
     fn resolve(&self, key: &str) -> Result<String> {
@@ -225,6 +231,6 @@ impl App {
 
 impl From<Config> for App {
     fn from(config: Config) -> Self {
-        Self { config }
+        Self { config, verbose: 0 }
     }
 }

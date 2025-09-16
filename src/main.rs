@@ -22,17 +22,22 @@ fn main() -> ExitCode {
 }
 
 fn run() -> app::Result {
-    let args = Args::parse();
+    let Args {
+        verbose,
+        config: config_path,
+        run_args,
+        action,
+    } = Args::parse();
 
-    let mut config = if let Some(path) = args.config.as_deref() {
+    let mut config = if let Some(path) = config_path.as_deref() {
         Config::from(path)
     } else {
         Config::new()
     };
 
-    config.args.merge(args);
+    config.run_args = config.run_args.merge(run_args);
 
-    let app = App::from(config);
+    let app = App::from(config).with_verbose(verbose);
 
-    app.run()
+    app.run(action.unwrap_or_default())
 }

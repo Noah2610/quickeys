@@ -1,6 +1,6 @@
-use crate::args::Args;
+use crate::args::RunArgs;
 use crate::util::expand_path_str;
-use serde::{de::Error, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
@@ -9,7 +9,7 @@ use std::path::Path;
 // #[serde(deny_unknown_fields)]
 pub struct Config {
     #[serde(rename = "config")]
-    pub args: Args,
+    pub run_args: RunArgs,
     #[serde(deserialize_with = "deserialize_expand_path_map")]
     pub constants: HashMap<String, String>,
     pub keybindings: HashMap<String, String>,

@@ -16,3 +16,9 @@ pub fn expand_path_str(s: &str) -> String {
 
     s.to_string()
 }
+
+pub fn expand_path_arg(
+    s: &str,
+) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    Ok(expand_path(s))
+}
