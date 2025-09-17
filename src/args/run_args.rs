@@ -10,20 +10,25 @@ pub struct RunArgs {
     pub shell: Option<String>,
 
     /// Run commands in a new background process
+    ///
+    /// Spawns a background process using the `fork` crate's `daemon` function:
+    /// https://docs.rs/fork/0.2.0/fork/fn.daemon.html
     #[arg(global = true, short, long = "bg")]
     #[serde(default)]
     pub background: bool,
 
     /// Optional log file for command's stdout.
     ///
-    /// Inherits parent process' stdout by default.
+    /// Creates parent directories if they do not exist.
+    /// Inherits parent process' stdout if omitted.
     #[arg(global = true, long, value_parser = expand_path_arg)]
     #[serde(default, deserialize_with = "deserialize_expand_path")]
     pub stdout: Option<PathBuf>,
 
     /// Optional log file for command's stderr.
     ///
-    /// Inherits parent process' stderr by default.
+    /// Creates parent directories if they do not exist.
+    /// Inherits parent process' stderr if omitted.
     #[arg(global = true, long, value_parser = expand_path_arg)]
     #[serde(default, deserialize_with = "deserialize_expand_path")]
     pub stderr: Option<PathBuf>,

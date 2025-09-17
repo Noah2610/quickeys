@@ -1,36 +1,34 @@
-### CONFIGURATION
+# Most command-line arguments can be set here. CLI arguments have precedence.
+# See `quickeys --help` for details on each config option listed here.
+# Note that the special character "~" is expanded to the user's home directory.
 config:
   # Shell used to execute commands. Omit to use user default (`$SHELL`).
-  shell:      'sh'
-  # Execute command in background.
+  shell:      sh
+  # Execute command in detached background process.
   background: false
   # Specify stdout for commands. Inherits parent stdout by default.
-  #stdout:     '~/.cache/quickeys/stdout'
+  #stdout:     ~/.cache/quickeys/stdout
   # Specify stderr for commands. Inherits parent stderr by default.
-  #stderr:     '~/.cache/quickeys/stderr'
+  #stderr:     ~/.cache/quickeys/stderr
 
-### CONSTANTS
+# Constants are variables that can be used in keybindings' commands.
+# Before running a command, all constants are replaced with their values.
+# Reference a constant with a leading "@" (ex. "@browser") and optionally
+# wrap the identifier name in "{}" (ex. "@{browser}").
 constants:
   terminal: 'alacritty'
-  shell:    'bash -c'
+  shell:    'bash -lc'
   browser:  'firefox'
   editor:   'nvim'
 
-### KEYBINDINGS
-##  Here you can define your keybindings.
-##  The keystroke combination to activate them is their key,
-##  and their value is the shell script that will be executed.
+# Define your key/command mappings here.
+# Keys are the literal strings you type to trigger the command.
+# Any constants referenced in the command string are resolved
+# to their respective values before running.
 keybindings:
-  ## BASE
-  q:  'true'
-  f:  'false'
-
-  ec: "echo hi"
-  se: '@{shell} "echo HI"'
-
-  sl: "sleep 30s"
-  ye: "yes"
-
-  ## OPEN applications
-  ot: '@terminal'
-  of: '@browser --new-window'
+  q: true
+  f: false
+  hi: echo Hi $USER!
+  term: '@terminal'
+  www:  '@browser --new-window'
+  ddg:  '@browser "https://start.duckduckgo.com"'
