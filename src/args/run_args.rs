@@ -1,17 +1,15 @@
 use crate::util::{expand_path, expand_path_arg, Merge};
-use clap::Parser;
 use serde::{Deserialize, Deserializer};
 use std::path::PathBuf;
 
-#[derive(Debug, Default, Parser, Deserialize)]
-#[command()]
+#[derive(Debug, Default, clap::Args, Deserialize)]
 pub struct RunArgs {
     /// Shell to use when running commands. Defaults to user's default shell.
     #[arg(global = true, short, long, value_name = "SHELL")]
     #[serde(default)]
     pub shell: Option<String>,
 
-    /// Run commands in a new background process TODO
+    /// Run commands in a new background process
     #[arg(global = true, short, long = "bg")]
     #[serde(default)]
     pub background: bool,

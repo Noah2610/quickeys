@@ -1,4 +1,4 @@
-use crate::args::RunArgs;
+use crate::args::ListArgs;
 use crate::util::Merge;
 use clap::Subcommand;
 
@@ -22,7 +22,10 @@ pub enum Action {
     },
 
     /// List keys and their resolved commands
-    List,
+    List {
+        #[command(flatten)]
+        args: ListArgs,
+    },
 }
 
 impl Merge for Action {

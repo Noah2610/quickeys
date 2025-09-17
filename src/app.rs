@@ -1,4 +1,4 @@
-use crate::args::Action;
+use crate::args::{Action, ListArgs};
 use crate::config::Config;
 use crate::prompt::{Prompt, PromptResult};
 use crate::util;
@@ -31,16 +31,29 @@ impl App {
         match action {
             Action::Prompt => self.run_repl(),
             Action::Run { key } => self.run_key(&key),
-            Action::List => self.list(),
+            Action::List { args } => self.list(args),
         }
     }
 
-    fn list(&self) -> Result {
+    fn list(
+        &self,
+        ListArgs {
+            delimiter,
+            key_only,
+            command_only,
+        }: ListArgs,
+    ) -> Result {
         use std::collections::BTreeSet;
 
         for key in BTreeSet::from_iter(self.config.keybindings.keys()) {
-            let resolved = self.resolve(key)?;
-            println!("{}: {}", key, resolved);
+            if key_only {
+                println!("{}", key);
+            } else if command_only {
+                let resolved = self.resolve(key)?;
+                println!("{}", resolved);
+            } else {
+                println!("{}{}{}", key, delimiter, self.resolve(key)?);
+            }
         }
 
         Ok(())
