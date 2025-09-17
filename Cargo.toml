@@ -1,7 +1,15 @@
 [package]
 name = "quickeys"
-version = "0.1.0"
+version = "1.0.0"
+description = "Simple command-shortcut CLI app. Configure key/command pairs in a YAML config. Run command via its associated key."
+authors = ["Noah Rosenzweig <rosenzweig.noah@gmail.com>"]
 edition = "2021"
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/Noah2610/quickeys"
+repository = "https://github.com/Noah2610/quickeys"
+keywords = ["cli", "shell", "command", "shortcut", "alias"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 clap = { version = "4.5.47", features = ["derive"] }

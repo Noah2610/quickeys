@@ -4,8 +4,8 @@ A simple command-shortcut CLI app. Better version of and based on [ShortStrokes]
 Configure keys mapped to commands. Run a command for a given key.
 
 ## Installation
-### Install from [crates.io] TODO
-Download, build, and install with `cargo`:
+### Install from [crates.io]
+Download, build, and install with `cargo` from [crates.io]:
 ```bash
 cargo install quickeys
 ```
@@ -55,6 +55,9 @@ keybindings:
 
 ## Usage
 ```bash
+# List and describe all command-line options and arguments.
+quickeys --help
+
 # Run an interactive prompt (default), running the command for the typed key,
 # as soon as a valid key is typed (no Enter needed).
 quickeys prompt
@@ -72,8 +75,11 @@ quickeys list
 quickeys list --help # for more options
 ```
 
+## License
+Distributed under the MIT license. See [`./LICENSE`].
 
 [ShortStrokes]: https://github.com/Noah2610/ShortStrokes
 [crates.io]: https://crates.io/crates/quickeys
 [`dirs::config_dir`]: https://docs.rs/dirs/6.0.0/dirs/fn.config_dir.html
 [`config.yml`]: ./config.yml
+[`./LICENSE`]: ./LICENSE
