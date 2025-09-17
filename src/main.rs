@@ -30,9 +30,9 @@ fn run() -> app::Result {
     } = Args::parse();
 
     let mut config = if let Some(path) = config_path.as_deref() {
-        Config::from(path)
+        Config::try_from(path)?
     } else {
-        Config::new()
+        Config::local()?
     };
 
     config.run_args = config.run_args.merge(run_args);

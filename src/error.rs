@@ -20,6 +20,7 @@ pub enum Error {
     },
     Unreachable(String),
     ForkError(i32),
+    DeserializeError(serde_yaml::Error),
 }
 
 impl std::error::Error for Error {}
@@ -57,6 +58,7 @@ impl std::fmt::Display for Error {
             } => write!(f, "[CommandError] command failed: {}\nexit code: {}", command, code),
             Unreachable(msg) => write!(f, "[Unreachable] Ohoh something's wrong ¯\\_(ツ)_/¯\n{}", msg),
             ForkError(code) => write!(f, "[ForkError] Failed to fork process. Fork returned error code: {}", code),
+            DeserializeError(err) => write!(f, "[DeserializeError] Failed to deserialize YAML: {}", err),
         }
     }
 }
@@ -82,5 +84,11 @@ impl<P: AsRef<Path>> From<(std::io::Error, P)> for Error {
             error,
             filepath: Some(path.as_ref().into()),
         }
+    }
+}
+
+impl From<serde_yaml::Error> for Error {
+    fn from(error: serde_yaml::Error) -> Self {
+        Self::DeserializeError(error)
     }
 }

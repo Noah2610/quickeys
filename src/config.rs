@@ -1,3 +1,4 @@
+use crate::app::{Error, Result};
 use crate::args::RunArgs;
 use crate::util::expand_path_str;
 use serde::{Deserialize, Deserializer};
@@ -8,16 +9,17 @@ use std::path::Path;
 #[derive(Default, Debug, Deserialize)]
 // #[serde(deny_unknown_fields)]
 pub struct Config {
-    #[serde(rename = "config")]
+    #[serde(default, rename = "config")]
     pub run_args: RunArgs,
-    #[serde(deserialize_with = "deserialize_expand_path_map")]
+    #[serde(default, deserialize_with = "deserialize_expand_path_map")]
     pub constants: HashMap<String, String>,
+    #[serde(default)]
     pub keybindings: HashMap<String, String>,
 }
 
 fn deserialize_expand_path_map<'de, D>(
     d: D,
-) -> Result<HashMap<String, String>, D::Error>
+) -> std::result::Result<HashMap<String, String>, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -31,34 +33,51 @@ where
 }
 
 impl Config {
-    /// Creates config from local config files, if present, or defaults.
-    pub fn new() -> Self {
-        Self::open_config_file()
-            .and_then(Self::parse_file)
-            .unwrap_or_default()
-    }
-
-    fn open_config_file() -> Option<File> {
-        dirs::config_dir()
-            .and_then(|dir| File::open(dir.join("quickeys/config.yml")).ok())
-    }
-
-    fn parse_file(file: File) -> Option<Self> {
-        match serde_yaml::from_reader::<File, Self>(file) {
-            Ok(config) => Some(config),
-            Err(err) => {
-                eprintln!("Failed to deserialize config file:\n{:}", err);
-                None
-            }
+    /// Creates config from local config file if present, otherwise defaults.
+    pub fn local() -> Result<Self> {
+        if let Ok(file) = Self::open_config_file() {
+            Self::parse_file(file)
+        } else {
+            Ok(Self::default())
         }
+    }
+
+    fn open_config_file() -> Result<File> {
+        dirs::config_dir()
+            .ok_or_else(|| {
+                Error::Message("Couldn't find local config directory".into())
+            })
+            .and_then(|dir| {
+                let path = dir.join("quickeys/config.yml");
+                File::open(&path).map_err(|e| (e, path).into())
+            })
+    }
+
+    fn parse_file(file: File) -> Result<Self> {
+        serde_yaml::from_reader::<File, Self>(file).map_err(Into::into)
     }
 }
 
-impl<P: AsRef<Path>> From<P> for Config {
-    fn from(path: P) -> Self {
+impl TryFrom<&Path> for Config {
+    type Error = Error;
+
+    fn try_from(path: &Path) -> Result<Self> {
         File::open(path)
-            .ok()
+            .map_err(|e| (e, path).into())
             .and_then(Self::parse_file)
-            .unwrap_or_default()
+    }
+}
+
+// impl From<&str> for Config {
+//     fn from(s: &str) -> Self {
+//         serde_yaml::from_str(s).unwrap_or_default()
+//     }
+// }
+
+impl TryFrom<&str> for Config {
+    type Error = Error;
+
+    fn try_from(s: &str) -> Result<Self> {
+        serde_yaml::from_str(s).map_err(Into::into)
     }
 }
