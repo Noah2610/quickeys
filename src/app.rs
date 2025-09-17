@@ -22,15 +22,28 @@ impl App {
     pub fn run(&self, action: Action) -> Result {
         match self.verbose {
             0 => (),
-            1 => eprintln!("{:#?}", self.config.run_args),
-            2.. => eprintln!("{:#?}", self.config),
+            1 => {
+                eprintln!("{:#?}\nAction {:#?}", self.config.run_args, &action)
+            }
+            2.. => eprintln!("{:#?}\nAction {:#?}", self.config, &action),
         }
 
         match action {
             Action::Prompt => self.run_repl(),
             Action::Run { key } => self.run_key(&key),
-            Action::List => unimplemented!(),
+            Action::List => self.list(),
         }
+    }
+
+    fn list(&self) -> Result {
+        use std::collections::BTreeSet;
+
+        for key in BTreeSet::from_iter(self.config.keybindings.keys()) {
+            let resolved = self.resolve(key)?;
+            println!("{}: {}", key, resolved);
+        }
+
+        Ok(())
     }
 
     fn run_repl(&self) -> Result {

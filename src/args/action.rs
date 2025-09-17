@@ -21,7 +21,7 @@ pub enum Action {
         key: String,
     },
 
-    /// List resolved keys and their commands
+    /// List keys and their resolved commands
     List,
 }
 
