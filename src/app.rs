@@ -181,7 +181,7 @@ impl App {
         }
 
         if run_args.background {
-            match fork::daemon(true, true).map_err(Error::ForkError)? {
+            match fork::daemon(true, true)? {
                 fork::Fork::Parent(child_pid) => {
                     if self.verbose > 1 {
                         eprintln!("forked process, child pid: {}", child_pid);
@@ -190,7 +190,8 @@ impl App {
                         eprintln!(r#"running in fork: {}"#, command_s);
                     }
 
-                    fork::waitpid(child_pid).map_err(Error::ForkError)
+                    fork::waitpid(child_pid)?;
+                    Ok(())
                 },
                 fork::Fork::Child => {
                     let status = command.spawn()?.wait()?;

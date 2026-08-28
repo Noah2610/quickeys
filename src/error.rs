@@ -19,7 +19,6 @@ pub enum Error {
         code: Option<i32>,
     },
     Unreachable(String),
-    ForkError(i32),
     DeserializeError(serde_yaml::Error),
 }
 
@@ -57,7 +56,6 @@ impl std::fmt::Display for Error {
                 code: Some(code),
             } => write!(f, "[CommandError] command failed: {}\nexit code: {}", command, code),
             Unreachable(msg) => write!(f, "[Unreachable] Ohoh something's wrong ¯\\_(ツ)_/¯\n{}", msg),
-            ForkError(code) => write!(f, "[ForkError] Failed to fork process. Fork returned error code: {}", code),
             DeserializeError(err) => write!(f, "[DeserializeError] Failed to deserialize YAML: {}", err),
         }
     }
