@@ -2,7 +2,7 @@ use crate::util::{expand_path, expand_path_arg, Merge};
 use serde::{Deserialize, Deserializer};
 use std::path::PathBuf;
 
-#[derive(Debug, Default, clap::Args, Deserialize)]
+#[derive(Debug, Default, Clone, clap::Parser, Deserialize)]
 pub struct RunArgs {
     /// Shell to use when running commands. Defaults to user's default shell.
     #[arg(global = true, short, long, value_name = "SHELL")]

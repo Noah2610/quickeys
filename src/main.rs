@@ -5,10 +5,11 @@ mod error;
 mod prompt;
 mod util;
 
-use crate::util::Merge;
+use crate::{args::RunArgs, util::Merge};
 use app::App;
 use args::{Args, Parser};
 use config::Config;
+use serde::Deserialize;
 use std::process::ExitCode;
 
 fn main() -> ExitCode {
@@ -17,7 +18,7 @@ fn main() -> ExitCode {
         Err(error) => {
             eprintln!("{}", error);
             ExitCode::FAILURE
-        }
+        },
     }
 }
 

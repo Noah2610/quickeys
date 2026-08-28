@@ -1,10 +1,13 @@
 use crate::app::{Error, Result};
+use crate::args::Parser;
 use crate::args::RunArgs;
 use crate::util::expand_path_str;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use std::fs::File;
 use std::path::Path;
+
+type Keybindings = HashMap<String, (Option<RunArgs>, String)>;
 
 #[derive(Default, Debug, Deserialize)]
 // #[serde(deny_unknown_fields)]
@@ -13,8 +16,39 @@ pub struct Config {
     pub run_args: RunArgs,
     #[serde(default, deserialize_with = "deserialize_expand_path_map")]
     pub constants: HashMap<String, String>,
-    #[serde(default)]
-    pub keybindings: HashMap<String, String>,
+    #[serde(default, deserialize_with = "deserialize_command_strings")]
+    pub keybindings: Keybindings,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum ConfigCommandValue {
+    Str(String),
+    WithArgs(String, String),
+}
+
+fn deserialize_command_strings<'de, D>(
+    d: D,
+) -> std::result::Result<Keybindings, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use ConfigCommandValue::*;
+
+    // let raw = HashMap::<String, Vec<String>>::deserialize(d)?;
+    let raw = HashMap::<String, ConfigCommandValue>::deserialize(d)?;
+    let mut map = Keybindings::default();
+
+    for (key, value) in raw.into_iter() {
+        match value {
+            Str(s) => map.insert(key, (None, s)),
+            WithArgs(s1, s2) => {
+                map.insert(key, (Some(RunArgs::parse_from(["", &s1])), s2))
+            },
+        };
+    }
+
+    Ok(map)
 }
 
 fn deserialize_expand_path_map<'de, D>(

@@ -1,7 +1,7 @@
-use crate::args::{Action, ListArgs};
+use crate::args::{Action, ListArgs, RunArgs};
 use crate::config::Config;
 use crate::prompt::{Prompt, PromptResult};
-use crate::util;
+use crate::util::{self, Merge};
 use regex::Regex;
 use std::process::Command;
 
@@ -24,7 +24,7 @@ impl App {
             0 => (),
             1 => {
                 eprintln!("{:#?}\nAction {:#?}", self.config.run_args, &action)
-            }
+            },
             2.. => eprintln!("{:#?}\nAction {:#?}", self.config, &action),
         }
 
@@ -49,10 +49,20 @@ impl App {
             if key_only {
                 println!("{}", key);
             } else if command_only {
-                let resolved = self.resolve(key)?;
-                println!("{}", resolved);
+                match self.resolve(key)? {
+                    (None, s) => println!("{}", s),
+                    (Some(args), s) => println!("{} ({:?})", s, args),
+                }
             } else {
-                println!("{}{}{}", key, delimiter, self.resolve(key)?);
+                match self.resolve(key)? {
+                    (None, s) => println!("{}{}{}", key, delimiter, s),
+                    (Some(args), s) => {
+                        println!(
+                            "{}{}{}{}{:?}",
+                            key, delimiter, s, delimiter, args
+                        )
+                    },
+                }
             }
         }
 
@@ -89,11 +99,11 @@ impl App {
                             let key = input.to_string();
                             prompt.next_line()?;
                             break Ok(Some(key));
-                        }
+                        },
                         PromptResult::Exit => {
                             break Ok(None);
-                        }
-                        PromptResult::Noop | PromptResult::Value(_) => {}
+                        },
+                        PromptResult::Noop | PromptResult::Value(_) => {},
                     }
                 }
             }
@@ -106,18 +116,27 @@ impl App {
         }
 
         let command = self.resolve(key)?;
-        self.exec(&command)
+        self.exec(command)
     }
 
-    fn exec(&self, command_s: &str) -> Result {
+    fn exec(
+        &self,
+        (run_args_opt, command_s): (Option<RunArgs>, String),
+    ) -> Result {
         use std::fs::{create_dir_all, File};
 
-        let mut command = self.create_command(command_s);
+        let config = &self.config;
+        let run_args = match run_args_opt {
+            Some(args) => config.run_args.clone().merge(args),
+            None => config.run_args.clone(),
+        };
+
+        let mut command = self.create_command(&command_s);
 
         let mut file_options = File::options();
         file_options.write(true).create(true).truncate(true);
 
-        if let Some(path) = self.config.run_args.stdout.as_ref() {
+        if let Some(path) = run_args.stdout.as_ref() {
             if self.verbose > 2 {
                 eprintln!(r#"stdout: {:?}"#, path);
             }
@@ -139,7 +158,7 @@ impl App {
             command.stdout(std::process::Stdio::inherit());
         }
 
-        if let Some(path) = self.config.run_args.stderr.as_ref() {
+        if let Some(path) = run_args.stderr.as_ref() {
             if self.verbose > 2 {
                 eprintln!(r#"stderr: {:?}"#, path);
             }
@@ -161,7 +180,7 @@ impl App {
             command.stderr(std::process::Stdio::inherit());
         }
 
-        if self.config.run_args.background {
+        if run_args.background {
             match fork::daemon(true, true).map_err(Error::ForkError)? {
                 fork::Fork::Parent(child_pid) => {
                     if self.verbose > 1 {
@@ -172,7 +191,7 @@ impl App {
                     }
 
                     fork::waitpid(child_pid).map_err(Error::ForkError)
-                }
+                },
                 fork::Fork::Child => {
                     let status = command.spawn()?.wait()?;
                     if status.success() {
@@ -180,7 +199,7 @@ impl App {
                     } else {
                         std::process::exit(status.code().unwrap_or(1));
                     }
-                }
+                },
             }
         } else {
             if self.verbose > 0 {
@@ -218,12 +237,12 @@ impl App {
         util::get_shell(self.config.run_args.shell.clone())
     }
 
-    fn resolve(&self, key: &str) -> Result<String> {
+    fn resolve(&self, key: &str) -> Result<(Option<RunArgs>, String)> {
         // TODO: Can't have literal '@' in commands without being expanded.
         //       Should implement @ escaping (ex. '\@' or '@@').
         let re = Regex::new(r"@(?:\{\s*)?(?<ident>\w+)(?:\s*\})?")?;
 
-        let command: &str = self
+        let (command_args, command) = self
             .config
             .keybindings
             .get(key)
@@ -247,7 +266,9 @@ impl App {
             }
         };
 
-        util::replace_all(&re, command, replacer)
+        let s = util::replace_all(&re, command, replacer)?;
+
+        Ok((command_args.clone(), s))
     }
 
     fn has_key(&self, key: &str) -> bool {
