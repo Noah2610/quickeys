@@ -48,9 +48,15 @@ constants:
 # Keys are the literal strings you type to trigger the command.
 # Any constants referenced in the command string are resolved
 # to their respective values before running.
+# Optionally you may set run arguments (cli options) for specific commands
+# by specifying the command value as a list of 2 string values:
+#   - cli options string
+#   - actual command string
 keybindings:
     ddg:  '@browser "https://start.duckduckgo.com"'
-    term: '@terminal'
+    # Run terminal command in background process with `--bg` flag,
+    # overwriting the default config of `background: false`.
+    term: ['--bg', '@terminal']
 ```
 
 ## Usage
